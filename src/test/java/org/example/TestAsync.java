@@ -10,6 +10,10 @@ import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.testing.FakeTicker;
 import java.time.Duration;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -22,12 +26,20 @@ public class TestAsync {
 
     private final TemplateCacheLoader templateCacheLoader = new TemplateCacheLoader(resultLoader);
 
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+
     private final AsyncLoadingCache<String, Result> cache = Caffeine.newBuilder()
         .refreshAfterWrite(Duration.ofDays(1))
+        .executor(executorService)
         .ticker(fakeTicker::read)
         .buildAsync(templateCacheLoader);
 
     private final TemplateLoader templateLoader = new TemplateLoader(cache);
+
+    @After
+    public void tearDown() {
+        executorService.shutdown();
+    }
 
     @Test
     public void testSuccessRefreshButNotExpire() {
